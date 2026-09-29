@@ -20,7 +20,7 @@ canvas{width:100%;height:260px;background:#07101d;border:1px solid var(--line);b
 <div class="row"><label>Market regime</label><select id="regime"><option>Normal</option><option>Risk-Off</option><option>High Inflation</option><option>Crypto Volatility</option></select></div>
 <div class="row"><label>Window (days)</label><input id="days" type="number" min="30" max="500" value="252"></div>
 <div class="row"><label>Seed</label><input id="seed" type="number" min="1" max="9999" value="42"></div>
-<button id="run">Generate market dataset</button>
+<button id="run">Generate market dataset</button><p id="status" style="margin:10px 0 0;color:var(--muted);font-size:.82rem">Ready — change a parameter or click Generate.</p>
 <div class="note">All prices and returns are generated locally from deterministic synthetic assumptions. No live provider is required.</div></section>
 <section class="panel"><h2>Market summary</h2><div class="metrics" id="metrics"></div><canvas id="chart" width="700" height="260"></canvas></section></div>
 <section class="panel" style="margin-top:16px"><h2>Asset statistics</h2><table><thead><tr><th>Asset</th><th>Expected return</th><th>Volatility</th><th>Correlation to SPX</th><th>Covariance proxy</th></tr></thead><tbody id="rows"></tbody></table></section>
@@ -28,11 +28,15 @@ canvas{width:100%;height:260px;background:#07101d;border:1px solid var(--line);b
 <script>
 const assets=[['SPX',.08,.16,.95],['NDX',.10,.22,.88],['TLT',.035,.14,-.25],['GLD',.045,.13,.08],['XLE',.07,.24,.62],['BTC',.18,.58,.42]];
 function runMarketData(){
- const regimeEl=document.getElementById("regime"),daysEl=document.getElementById("days"),seedEl=document.getElementById("seed"),rowsEl=document.getElementById("rows"),metricsEl=document.getElementById("metrics"),chartEl=document.getElementById("chart");
+ const regimeEl=document.getElementById("regime"),daysEl=document.getElementById("days"),seedEl=document.getElementById("seed"),rowsEl=document.getElementById("rows"),metricsEl=document.getElementById("metrics"),chartEl=document.getElementById("chart"),statusEl=document.getElementById("status"),runBtn=document.getElementById("run");
+ statusEl.textContent="Generating dataset…"; runBtn.disabled=true; runBtn.textContent="Generating…";
  const r=regimeEl.selectedIndex,d=Number(daysEl.value),s=Number(seedEl.value);const multV=[1,1.65,1.25,1.45][r],multR=[1,.25,.72,.82][r];
  let html='',rets=[],vols=[];assets.forEach((a,i)=>{let ret=a[1]*multR+(((s+i*13)%11)-5)*.001;let vol=a[2]*multV*(r===3&&a[0]==='BTC'?1.4:1);let corr=Math.max(-.9,Math.min(.99,a[3]+(r===1?.08:0)));let cov=corr*vol*(.16*multV);rets.push(ret);vols.push(vol);html+=`<tr><td>${a[0]}</td><td>${(ret*100).toFixed(1)}%</td><td>${(vol*100).toFixed(1)}%</td><td>${corr.toFixed(2)}</td><td>${cov.toFixed(3)}</td></tr>`});rowsEl.innerHTML=html;
  metricsEl.innerHTML=`<div class="metric"><b>${d}</b><span>Observation days</span></div><div class="metric"><b>${regimeEl.value}</b><span>Regime</span></div><div class="metric"><b>${(Math.max(...vols)*100).toFixed(1)}%</b><span>Highest volatility</span></div><div class="metric"><b>${(rets.reduce((a,b)=>a+b,0)/rets.length*100).toFixed(1)}%</b><span>Mean expected return</span></div>`;
  const ctx=chartEl.getContext('2d'),w=chartEl.width,h=chartEl.height;ctx.clearRect(0,0,w,h);vols.forEach((v,i)=>{const bh=v/Math.max(...vols)*(h-70);ctx.fillStyle='#67e8f9';ctx.fillRect(35+i*105,h-40-bh,64,bh);ctx.fillStyle='#eef7ff';ctx.fillText(assets[i][0],48+i*105,h-18);});
+ setTimeout(()=>{statusEl.textContent="Complete — dataset regenerated with the current settings.";runBtn.disabled=false;runBtn.textContent="Generate market dataset";},180);
 }
-const runBtn=document.getElementById("run"); runBtn.addEventListener("click",runMarketData); runMarketData();
+const runBtn=document.getElementById("run"); runBtn.addEventListener("click",runMarketData);
+document.getElementById("metrics").innerHTML='<div class="metric"><b>—</b><span>Click Generate</span></div><div class="metric"><b>—</b><span>Regime</span></div><div class="metric"><b>—</b><span>Highest volatility</span></div><div class="metric"><b>—</b><span>Mean expected return</span></div>';
+document.getElementById("rows").innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted)">No dataset generated yet.</td></tr>';
 </script></body></html>
