@@ -1,0 +1,40 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Variational Quantum Risk Lab</title><style>
+:root{color-scheme:dark;--bg:#050914;--panel:#0c1424;--panel2:#111d32;--line:#203453;--text:#eef7ff;--muted:#8fa6c6;--cyan:#67e8f9;--blue:#60a5fa;--green:#5eead4}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;background:radial-gradient(circle at 75% 0,#102b4b 0,transparent 28%),var(--bg);color:var(--text)}
+a{color:inherit;text-decoration:none}.shell{max-width:1180px;margin:auto;padding:0 24px}.nav{height:72px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(143,166,198,.14)}
+.brand{font-weight:800}.back{color:var(--cyan);font-size:.86rem}.hero{padding:52px 0 28px}.tag{color:var(--cyan);font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:.72rem}
+.hero h1{font-size:clamp(2.6rem,6vw,5rem);line-height:.95;margin:12px 0 18px;letter-spacing:-.055em}.lead{color:var(--muted);max-width:820px;line-height:1.7}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.panel{background:linear-gradient(145deg,rgba(17,29,50,.88),rgba(8,15,28,.93));border:1px solid var(--line);border-radius:18px;padding:20px}
+.panel h2{font-size:1.05rem;margin:0 0 16px}.row{display:grid;grid-template-columns:1fr 150px;gap:10px;align-items:center;margin:10px 0}.row label{color:#cfe0f5;font-size:.9rem}
+input,select{width:100%;background:#08111f;border:1px solid var(--line);color:var(--text);border-radius:9px;padding:9px}
+button{border:1px solid #2d5b87;background:linear-gradient(90deg,#12365b,#0d2744);color:var(--text);border-radius:10px;padding:10px 13px;cursor:pointer;font-weight:800}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}.metric{padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(12,20,36,.72)}
+.metric b{display:block;font-size:1.1rem}.metric span{color:var(--muted);font-size:.76rem}.note{margin-top:16px;padding:14px;border:1px dashed #2d4d72;border-radius:14px;color:var(--muted);line-height:1.6;font-size:.85rem}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.86rem}th,td{border-bottom:1px solid rgba(143,166,198,.14);padding:10px;text-align:right}th:first-child,td:first-child{text-align:left}
+canvas{width:100%;height:260px;background:#07101d;border:1px solid var(--line);border-radius:12px}.footer{padding:32px 0 42px;color:var(--muted);font-size:.8rem}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.shell{padding:0 16px}.metrics{grid-template-columns:1fr 1fr}.row{grid-template-columns:1fr 110px}}
+</style></head><body><div class="shell">
+<nav class="nav"><div class="brand">Quantum Finance Lab</div><a class="back" href="/index.html">← Back to Quantum Finance Lab</a></nav>
+<header class="hero"><div class="tag">Research Area 02 · Variational Algorithms</div><h1>Variational Quantum<br>Risk Lab</h1><p class="lead">Investigate how a parameterized variational circuit changes a synthetic financial risk objective across different ansatz depths and optimizer settings.</p></header>
+<div class="grid"><section class="panel"><h2>Experiment controls</h2>
+<div class="row"><label>Ansatz depth</label><input id="depth" type="number" min="1" max="8" value="3"></div>
+<div class="row"><label>Optimizer</label><select id="opt"><option>COBYLA-style</option><option>SPSA-style</option><option>Gradient descent</option></select></div>
+<div class="row"><label>Risk penalty λ</label><input id="lambda" type="number" min="0.5" max="10" step="0.5" value="4"></div>
+<div class="row"><label>Iterations</label><input id="iters" type="number" min="20" max="200" value="80"></div>
+<button id="run">Run variational experiment</button>
+<div class="note">This browser experiment uses a deterministic mathematical simulation of a variational optimization loop. It does not execute on quantum hardware and does not claim quantum advantage.</div></section>
+<section class="panel"><h2>Convergence</h2><canvas id="chart" width="700" height="260"></canvas><div class="metrics" id="metrics"></div></section></div>
+<section class="panel" style="margin-top:16px"><h2>Parameter trajectory</h2><table><thead><tr><th>Iteration</th><th>Objective</th><th>Risk term</th><th>Return term</th></tr></thead><tbody id="rows"></tbody></table></section>
+<footer class="footer">Variational Quantum Risk Lab · deterministic research simulation</footer></div>
+<script>
+function seeded(i,d,l){return Math.sin(i*12.9898+d*7.23+l*3.17)*43758.5453%1}
+function run(){
+ const d=+depth.value,l=+lambda.value,n=+iters.value; let vals=[],rowsHtml="";
+ for(let i=0;i<n;i++){const decay=Math.exp(-i/(18+d*4)); const noise=(seeded(i,d,l)-Math.trunc(seeded(i,d,l))-.5)*.025; const risk=.42*decay+.08+.012*d; const ret=.16-(.035*decay)+.003*d; const obj=risk*l-ret+noise; vals.push(obj); if(i%10===0||i===n-1) rowsHtml+=`<tr><td>${i}</td><td>${obj.toFixed(4)}</td><td>${risk.toFixed(4)}</td><td>${ret.toFixed(4)}</td></tr>`;}
+ rows.innerHTML=rowsHtml; const best=Math.min(...vals),start=vals[0],impr=(start-best)/Math.abs(start);
+ metrics.innerHTML=`<div class="metric"><b>${start.toFixed(3)}</b><span>Initial objective</span></div><div class="metric"><b>${best.toFixed(3)}</b><span>Best objective</span></div><div class="metric"><b>${(impr*100).toFixed(1)}%</b><span>Objective improvement</span></div><div class="metric"><b>${d}</b><span>Ansatz depth</span></div>`;
+ const c=chart,ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);ctx.strokeStyle='#203453';for(let y=40;y<h;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+ const lo=Math.min(...vals),hi=Math.max(...vals),span=hi-lo||1;ctx.strokeStyle='#67e8f9';ctx.lineWidth=3;ctx.beginPath();vals.forEach((v,i)=>{const x=i/(vals.length-1)*(w-30)+15,y=h-20-(v-lo)/span*(h-40);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
+}
+run.onclick=run;run();
+</script></body></html>
