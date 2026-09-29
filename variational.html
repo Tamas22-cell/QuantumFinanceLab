@@ -28,13 +28,15 @@ canvas{width:100%;height:260px;background:#07101d;border:1px solid var(--line);b
 <footer class="footer">Variational Quantum Risk Lab · deterministic research simulation</footer></div>
 <script>
 function seeded(i,d,l){return Math.sin(i*12.9898+d*7.23+l*3.17)*43758.5453%1}
-function run(){
- const d=+depth.value,l=+lambda.value,n=+iters.value; let vals=[],rowsHtml="";
+function runExperiment(){
+ const depthEl=document.getElementById("depth"), lambdaEl=document.getElementById("lambda"), itersEl=document.getElementById("iters");
+ const rowsEl=document.getElementById("rows"), metricsEl=document.getElementById("metrics"), chartEl=document.getElementById("chart");
+ const d=Number(depthEl.value),l=Number(lambdaEl.value),n=Number(itersEl.value); let vals=[],rowsHtml="";
  for(let i=0;i<n;i++){const decay=Math.exp(-i/(18+d*4)); const noise=(seeded(i,d,l)-Math.trunc(seeded(i,d,l))-.5)*.025; const risk=.42*decay+.08+.012*d; const ret=.16-(.035*decay)+.003*d; const obj=risk*l-ret+noise; vals.push(obj); if(i%10===0||i===n-1) rowsHtml+=`<tr><td>${i}</td><td>${obj.toFixed(4)}</td><td>${risk.toFixed(4)}</td><td>${ret.toFixed(4)}</td></tr>`;}
- rows.innerHTML=rowsHtml; const best=Math.min(...vals),start=vals[0],impr=(start-best)/Math.abs(start);
- metrics.innerHTML=`<div class="metric"><b>${start.toFixed(3)}</b><span>Initial objective</span></div><div class="metric"><b>${best.toFixed(3)}</b><span>Best objective</span></div><div class="metric"><b>${(impr*100).toFixed(1)}%</b><span>Objective improvement</span></div><div class="metric"><b>${d}</b><span>Ansatz depth</span></div>`;
- const c=chart,ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);ctx.strokeStyle='#203453';for(let y=40;y<h;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+ rowsEl.innerHTML=rowsHtml; const best=Math.min(...vals),start=vals[0],impr=(start-best)/Math.abs(start);
+ metricsEl.innerHTML=`<div class="metric"><b>${start.toFixed(3)}</b><span>Initial objective</span></div><div class="metric"><b>${best.toFixed(3)}</b><span>Best objective</span></div><div class="metric"><b>${(impr*100).toFixed(1)}%</b><span>Objective improvement</span></div><div class="metric"><b>${d}</b><span>Ansatz depth</span></div>`;
+ const c=chartEl,ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);ctx.strokeStyle='#203453';for(let y=40;y<h;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
  const lo=Math.min(...vals),hi=Math.max(...vals),span=hi-lo||1;ctx.strokeStyle='#67e8f9';ctx.lineWidth=3;ctx.beginPath();vals.forEach((v,i)=>{const x=i/(vals.length-1)*(w-30)+15,y=h-20-(v-lo)/span*(h-40);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
 }
-run.onclick=run;run();
+const runBtn=document.getElementById("run"); runBtn.addEventListener("click",runExperiment); runExperiment();
 </script></body></html>
