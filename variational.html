@@ -13,6 +13,8 @@ button{border:1px solid #2d5b87;background:linear-gradient(90deg,#12365b,#0d2744
 table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.86rem}th,td{border-bottom:1px solid rgba(143,166,198,.14);padding:10px;text-align:right}th:first-child,td:first-child{text-align:left}
 canvas{width:100%;height:260px;background:#07101d;border:1px solid var(--line);border-radius:12px}.footer{padding:32px 0 42px;color:var(--muted);font-size:.8rem}
 @media(max-width:900px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.shell{padding:0 16px}.metrics{grid-template-columns:1fr 1fr}.row{grid-template-columns:1fr 110px}}
+
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.tools button{border:1px solid #2d5b87;background:#0b1b30;color:var(--text);border-radius:10px;padding:9px 12px;cursor:pointer;font-weight:700}.tools button:disabled{opacity:.45;cursor:not-allowed}
 </style></head><body><div class="shell">
 <nav class="nav"><div class="brand">Quantum Finance Lab</div><a class="back" href="/index.html">← Back to Quantum Finance Lab</a></nav>
 <header class="hero"><div class="tag">Research Area 02 · Variational Algorithms</div><h1>Variational Quantum<br>Risk Lab</h1><p class="lead">Investigate how a parameterized variational circuit changes a synthetic financial risk objective across different ansatz depths and optimizer settings.</p></header>
@@ -24,9 +26,18 @@ canvas{width:100%;height:260px;background:#07101d;border:1px solid var(--line);b
 <button id="run">Run variational experiment</button><p id="status" style="margin:10px 0 0;color:var(--muted);font-size:.82rem">Ready — configure the experiment and click Run.</p>
 <div class="note">This browser experiment uses a deterministic mathematical simulation of a variational optimization loop. It does not execute on quantum hardware and does not claim quantum advantage.</div></section>
 <section class="panel"><h2>Convergence</h2><canvas id="chart" width="700" height="260"></canvas><div class="metrics" id="metrics"></div></section></div>
-<section class="panel" style="margin-top:16px"><h2>Parameter trajectory</h2><table><thead><tr><th>Iteration</th><th>Objective</th><th>Risk term</th><th>Return term</th></tr></thead><tbody id="rows"></tbody></table></section>
+<section class="panel" style="margin-top:16px"><h2>Parameter trajectory</h2><table><thead><tr><th>Iteration</th><th>Objective</th><th>Risk term</th><th>Return term</th></tr></thead><tbody id="rows"></tbody></table><div class="tools"><button id="saveResult" disabled>Save Result</button><button id="exportJson" disabled>Download JSON</button><button id="exportCsv" disabled>Download CSV</button></div><p id="saveState" style="color:var(--muted);font-size:.82rem"></p></section>
 <footer class="footer">Variational Quantum Risk Lab · deterministic research simulation</footer></div>
 <script>
+const HISTORY_KEY="qfl:experiment-history:v1";
+function qflHistory(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]")}catch(e){return []}}
+function qflStore(entry){const h=qflHistory();h.unshift(entry);localStorage.setItem(HISTORY_KEY,JSON.stringify(h.slice(0,100)));}
+function qflDownload(name,type,text){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},0)}
+function qflSave(){if(!window.lastResult)return;qflStore(window.lastResult);const s=document.getElementById("saveState");if(s)s.textContent="Saved to Experiment History."}
+function qflJson(){if(window.lastResult)qflDownload("quantum-finance-result.json","application/json",JSON.stringify(window.lastResult,null,2))}
+function qflCsv(){if(!window.lastResult)return;const rows=[["field","value"]].concat(Object.entries(window.lastResult.metrics||{}));qflDownload("quantum-finance-result.csv","text/csv",rows.map(function(r){return r.map(function(x){return "\""+String(x).replaceAll("\"","\"\"")+"\""}).join(",")}).join("\n"))}
+function qflEnableTools(){["saveResult","exportJson","exportCsv"].forEach(function(id){const e=document.getElementById(id);if(e)e.disabled=false})}
+
 function seeded(i,d,l){return Math.sin(i*12.9898+d*7.23+l*3.17)*43758.5453%1}
 function runExperiment(){
  const depthEl=document.getElementById("depth"), lambdaEl=document.getElementById("lambda"), itersEl=document.getElementById("iters"), statusEl=document.getElementById("status"), runBtn=document.getElementById("run");
@@ -35,9 +46,9 @@ function runExperiment(){
  const d=Number(depthEl.value),l=Number(lambdaEl.value),n=Number(itersEl.value); let vals=[],rowsHtml="";
  for(let i=0;i<n;i++){const decay=Math.exp(-i/(18+d*4)); const noise=(seeded(i,d,l)-Math.trunc(seeded(i,d,l))-.5)*.025; const risk=.42*decay+.08+.012*d; const ret=.16-(.035*decay)+.003*d; const obj=risk*l-ret+noise; vals.push(obj); if(i%10===0||i===n-1) rowsHtml+=`<tr><td>${i}</td><td>${obj.toFixed(4)}</td><td>${risk.toFixed(4)}</td><td>${ret.toFixed(4)}</td></tr>`;}
  rowsEl.innerHTML=rowsHtml; const best=Math.min(...vals),start=vals[0],impr=(start-best)/Math.abs(start);
- metricsEl.innerHTML=`<div class="metric"><b>${start.toFixed(3)}</b><span>Initial objective</span></div><div class="metric"><b>${best.toFixed(3)}</b><span>Best objective</span></div><div class="metric"><b>${(impr*100).toFixed(1)}%</b><span>Objective improvement</span></div><div class="metric"><b>${d}</b><span>Ansatz depth</span></div>`;
+ window.lastResult={id:Date.now(),timestamp:new Date().toISOString(),module:"Variational Quantum Risk Lab",metrics:{initialObjective:start,bestObjective:best,objectiveImprovement:impr,ansatzDepth:d,riskPenalty:l,iterations:n}};qflEnableTools();metricsEl.innerHTML=`<div class="metric"><b>${start.toFixed(3)}</b><span>Initial objective</span></div><div class="metric"><b>${best.toFixed(3)}</b><span>Best objective</span></div><div class="metric"><b>${(impr*100).toFixed(1)}%</b><span>Objective improvement</span></div><div class="metric"><b>${d}</b><span>Ansatz depth</span></div>`;
  const c=chartEl,ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);ctx.strokeStyle='#203453';for(let y=40;y<h;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
  const lo=Math.min(...vals),hi=Math.max(...vals),span=hi-lo||1;ctx.strokeStyle='#67e8f9';ctx.lineWidth=3;ctx.beginPath();vals.forEach((v,i)=>{const x=i/(vals.length-1)*(w-30)+15,y=h-20-(v-lo)/span*(h-40);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();setTimeout(()=>{statusEl.textContent="Complete — variational results generated.";runBtn.disabled=false;runBtn.textContent="Run variational experiment";},180);
 }
-const runBtn=document.getElementById("run"); runBtn.addEventListener("click",runExperiment);document.getElementById("metrics").innerHTML='<div class="metric"><b>—</b><span>Initial objective</span></div><div class="metric"><b>—</b><span>Best objective</span></div><div class="metric"><b>—</b><span>Objective improvement</span></div><div class="metric"><b>—</b><span>Ansatz depth</span></div>';document.getElementById("rows").innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted)">No experiment run yet.</td></tr>';
+document.getElementById("saveResult").addEventListener("click",qflSave);document.getElementById("exportJson").addEventListener("click",qflJson);document.getElementById("exportCsv").addEventListener("click",qflCsv);const runBtn=document.getElementById("run"); runBtn.addEventListener("click",runExperiment);document.getElementById("metrics").innerHTML='<div class="metric"><b>—</b><span>Initial objective</span></div><div class="metric"><b>—</b><span>Best objective</span></div><div class="metric"><b>—</b><span>Objective improvement</span></div><div class="metric"><b>—</b><span>Ansatz depth</span></div>';document.getElementById("rows").innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted)">No experiment run yet.</td></tr>';
 </script></body></html>
